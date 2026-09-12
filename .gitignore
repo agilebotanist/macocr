@@ -1,0 +1,18 @@
+# Scratch/working files (input PDFs, OCR output, screenshots) — never versioned.
+tmp/
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# macOS
+.DS_Store
