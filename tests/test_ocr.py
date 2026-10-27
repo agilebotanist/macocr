@@ -89,6 +89,47 @@ def test_run_vision_joins_top_candidates():
     assert ocr_module._run_vision(handler) == "Hello\nWorld"
 
 
+def test_run_vision_uses_default_languages():
+    seen = {}
+    original_init = _FakeRequest.init
+
+    def spy_init(self):
+        result = original_init(self)
+        seen["req"] = self
+        return result
+
+    _FakeRequest.init = spy_init
+    try:
+        handler = _make_fake_handler(texts=["x"])()
+        ocr_module._run_vision(handler)
+    finally:
+        _FakeRequest.init = original_init
+    assert seen["req"].languages == ocr_module.DEFAULT_LANGS == ["en-US", "fr-FR"]
+
+
+def test_run_vision_uses_custom_languages():
+    seen = {}
+    original_init = _FakeRequest.init
+
+    def spy_init(self):
+        result = original_init(self)
+        seen["req"] = self
+        return result
+
+    _FakeRequest.init = spy_init
+    try:
+        handler = _make_fake_handler(texts=["x"])()
+        ocr_module._run_vision(handler, ["ru-RU", "en-US"])
+    finally:
+        _FakeRequest.init = original_init
+    assert seen["req"].languages == ["ru-RU", "en-US"]
+
+
+def test_parse_langs_splits_and_strips():
+    assert ocr_module.parse_langs("ru-RU, en-US,,") == ["ru-RU", "en-US"]
+    assert ocr_module.parse_langs("") == []
+
+
 def test_run_vision_skips_missing_candidates():
     handler = _make_fake_handler()()
 
@@ -129,10 +170,10 @@ def test_ocr_image_builds_handler_from_url(monkeypatch):
 
 
 def test_ocr_pdf_reports_pages_and_separators(tmp_path, monkeypatch, capsys):
-    import fitz
+    import pymupdf
 
     pdf_path = tmp_path / "sample.pdf"
-    doc = fitz.open()
+    doc = pymupdf.open()
     for text in ("Page One", "Page Two"):
         page = doc.new_page()
         page.insert_text((72, 72), text)

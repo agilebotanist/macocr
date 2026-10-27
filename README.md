@@ -2,7 +2,7 @@
 
 Offline OCR for PDFs and images on macOS, using the native Vision framework
 (`VNRecognizeTextRequest`) — no cloud API, no network calls, no extra OCR
-engine to install. Recognizes mixed English/French text out of the box.
+engine to install. Recognizes mixed English/French text out of the box; other languages via `--lang`.
 
 ## Requirements
 
@@ -70,3 +70,19 @@ pytest -m integration  # opt-in test that makes a real Vision call
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Languages
+
+The default recognition languages are `en-US` and `fr-FR`. Pick others with
+`--lang` (comma-separated, first is preferred) and list what your macOS supports
+with `--list-langs`:
+
+```
+macocr --list-langs
+macocr scan.pdf --lang ru-RU,en-US -o ./out
+```
+
+An unsupported code is rejected before any OCR starts. In a quick check on four
+printed Russian book pages the default languages already recognized Cyrillic as
+well as `ru-RU,en-US` (99-100% of words); `--lang` is needed for other
+languages; its effect on handwriting or tables was not tested.

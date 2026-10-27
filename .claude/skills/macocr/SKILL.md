@@ -10,8 +10,8 @@ allowed-tools:
 
 This skill wraps the `macocr` CLI from this repo. It recognizes text in
 images and PDFs entirely on-device (no network calls, no cloud OCR API) using
-`VNRecognizeTextRequest`, with `en-US` and `fr-FR` both enabled so mixed
-English/French pages work without extra configuration.
+`VNRecognizeTextRequest`, with `en-US` and `fr-FR` enabled by default (mixed English/French pages work
+without configuration). Use `--lang` for other languages, e.g. `--lang ru-RU,en-US`.
 
 **macOS only.** Before using it, confirm the host is Darwin — if not, tell
 the user this tool can't run here and stop.
@@ -42,7 +42,7 @@ bundles (declared in `pyproject.toml`); pip resolves those automatically.
 ## Usage
 
 ```
-macocr <file-or-directory> [-o OUTPUT_DIR] [--dpi N]
+macocr <file-or-directory> [-o OUTPUT_DIR] [--dpi N] [--lang CODES] [--list-langs]
 ```
 
 - A single image or PDF path OCRs just that file.
@@ -50,6 +50,8 @@ macocr <file-or-directory> [-o OUTPUT_DIR] [--dpi N]
   (non-recursive).
 - `-o/--output-dir` controls where the `.txt` output lands; defaults to next
   to the input (or, for a directory input, inside that same directory).
+- `--lang` takes comma-separated Vision codes (first preferred); `--list-langs`
+  prints the codes supported by this macOS. Unsupported codes are rejected.
 - `--dpi` controls the render resolution for PDF pages before OCR (default
   `200`). Raise it (e.g. `300`–`400`) for small/dense print if recognition
   quality looks poor; this costs more time per page.

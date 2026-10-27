@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- `--lang` selects Vision recognition languages (comma-separated, validated
+  against the languages the installed macOS supports); defaults unchanged
+  (`en-US`, `fr-FR`).
+- `--list-langs` prints the supported languages.
+- Library API: `ocr_image(path, langs=None)`, `ocr_pdf(path, dpi=200, langs=None)`,
+  `parse_langs`, `supported_languages`.
+
 ## 0.1.0
 
 Initial release.

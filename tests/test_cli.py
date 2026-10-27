@@ -4,7 +4,7 @@ from macocr import cli
 
 
 def test_single_pdf_file_dispatch(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "ocr_pdf", lambda path, dpi=200: "PDFTEXT")
+    monkeypatch.setattr(cli, "ocr_pdf", lambda path, dpi=200, langs=None: "PDFTEXT")
     pdf = tmp_path / "doc.pdf"
     pdf.write_bytes(b"")
 
@@ -15,7 +15,7 @@ def test_single_pdf_file_dispatch(tmp_path, monkeypatch):
 
 
 def test_single_image_file_dispatch(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "ocr_image", lambda path: "IMGTEXT")
+    monkeypatch.setattr(cli, "ocr_image", lambda path, langs=None: "IMGTEXT")
     img = tmp_path / "photo.png"
     img.write_bytes(b"")
 
@@ -26,8 +26,8 @@ def test_single_image_file_dispatch(tmp_path, monkeypatch):
 
 
 def test_directory_batch_dispatch_skips_unrelated_files(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "ocr_pdf", lambda path, dpi=200: f"PDF:{path.name}")
-    monkeypatch.setattr(cli, "ocr_image", lambda path: f"IMG:{path.name}")
+    monkeypatch.setattr(cli, "ocr_pdf", lambda path, dpi=200, langs=None: f"PDF:{path.name}")
+    monkeypatch.setattr(cli, "ocr_image", lambda path, langs=None: f"IMG:{path.name}")
 
     (tmp_path / "a.pdf").write_bytes(b"")
     (tmp_path / "b.png").write_bytes(b"")
@@ -41,7 +41,7 @@ def test_directory_batch_dispatch_skips_unrelated_files(tmp_path, monkeypatch):
 
 
 def test_output_dir_override(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "ocr_image", lambda path: "IMGTEXT")
+    monkeypatch.setattr(cli, "ocr_image", lambda path, langs=None: "IMGTEXT")
     img = tmp_path / "photo.jpg"
     img.write_bytes(b"")
     out_dir = tmp_path / "out"
@@ -63,7 +63,7 @@ def test_empty_directory_prints_message(tmp_path, capsys):
 def test_dpi_argument_is_passed_through(tmp_path, monkeypatch):
     captured = {}
 
-    def fake_ocr_pdf(path, dpi=200):
+    def fake_ocr_pdf(path, dpi=200, langs=None):
         captured["dpi"] = dpi
         return "PDFTEXT"
 
@@ -74,3 +74,69 @@ def test_dpi_argument_is_passed_through(tmp_path, monkeypatch):
     cli.main([str(pdf), "--dpi", "350"])
 
     assert captured["dpi"] == 350
+
+
+def test_lang_argument_is_passed_through(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_ocr_pdf(path, dpi=200, langs=None):
+        captured["langs"] = langs
+        return "PDFTEXT"
+
+    monkeypatch.setattr(cli, "ocr_pdf", fake_ocr_pdf)
+    monkeypatch.setattr(cli, "supported_languages", lambda: ["en-US", "fr-FR", "ru-RU"])
+    pdf = tmp_path / "doc.pdf"
+    pdf.write_bytes(b"")
+
+    assert cli.main([str(pdf), "--lang", "ru-RU, en-US"]) == 0
+
+    assert captured["langs"] == ["ru-RU", "en-US"]
+
+
+def test_default_languages_are_unchanged_when_lang_omitted(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_ocr_image(path, langs=None):
+        captured["langs"] = langs
+        return "IMGTEXT"
+
+    monkeypatch.setattr(cli, "ocr_image", fake_ocr_image)
+    img = tmp_path / "photo.png"
+    img.write_bytes(b"")
+
+    cli.main([str(img)])
+
+    assert captured["langs"] is None
+
+
+def test_unsupported_language_is_rejected(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "supported_languages", lambda: ["en-US", "fr-FR"])
+    pdf = tmp_path / "doc.pdf"
+    pdf.write_bytes(b"")
+
+    try:
+        cli.main([str(pdf), "--lang", "xx-XX"])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("expected SystemExit")
+
+    assert "unsupported language" in capsys.readouterr().err
+    assert not (tmp_path / "doc.txt").exists()
+
+
+def test_list_langs_prints_supported_languages(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "supported_languages", lambda: ["en-US", "ru-RU"])
+
+    assert cli.main(["--list-langs"]) == 0
+
+    assert capsys.readouterr().out.split() == ["en-US", "ru-RU"]
+
+
+def test_missing_input_is_an_error(capsys):
+    try:
+        cli.main([])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("expected SystemExit")
